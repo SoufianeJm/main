@@ -7,15 +7,20 @@ module.exports = async function (req, res) {
     .setKey(process.env.APPWRITE_API_KEY);
 
   const users = new sdk.Users(client);
-  const { email } = JSON.parse(req.body || '{}');
-
-  if (!email) {
-    return res.json({ exists: false, error: 'No email provided' });
-  }
+  let email;
 
   try {
-    const list = await users.list();
-    const exists = list.users.some(u => u.email === email);
+    // Parse email from request body
+    const body = req.body ? JSON.parse(req.body) : {};
+    email = body.email;
+    if (!email) {
+      return res.json({ exists: false, error: 'No email provided' });
+    }
+
+    // Efficiently search for user by email
+    const list = await users.list(undefined, undefined, email);
+    const exists = list.users.some(u => u.email.toLowerCase() === email.toLowerCase());
+
     return res.json({ exists });
   } catch (err) {
     return res.json({ exists: false, error: err.message });
